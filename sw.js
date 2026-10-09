@@ -1,4 +1,4 @@
-const CACHE_NAME='n3-loop-pages-20261009-v1';
+const CACHE_NAME='n3-loop-pages-20261009-v2';
 const CORE=['./','./index.html','./manifest.webmanifest','./assets/icons/icon-192.png','./assets/icons/icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
