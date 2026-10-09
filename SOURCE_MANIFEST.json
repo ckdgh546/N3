@@ -1,0 +1,38 @@
+{
+  "index.html": {
+    "size": 4390873,
+    "sha256": "47c2c73eb148bcd321db28f55b59363d039b9e468c3cb1a04ecab6df307d050b"
+  },
+  "sw.js": {
+    "size": 324,
+    "sha256": "35bd80f58d5a422788e66c36404bc5d38e49eab2527768c89493843110ac1239"
+  },
+  "player.html": {
+    "size": 1094,
+    "sha256": "54432b9a6834a0837da1a950d79596eef2588cfda2f7300247e33eb170fa0068"
+  },
+  "package.json": {
+    "size": 332,
+    "sha256": "40b43e734a3f401c75b10b7a0a6ab8e5d5ce4aa25041acdeef8d16f21033a124"
+  },
+  "src-tauri/Cargo.toml": {
+    "size": 934,
+    "sha256": "75034c720ab985994e7cca17aee44e602005a28da087444135e2d3ec167d5c3f"
+  },
+  "src-tauri/src/lib.rs": {
+    "size": 21165,
+    "sha256": "404b2264f27a3962e9893b621143ac4eb54fb25354f7d321cbc9154a3ad88999"
+  },
+  "src-tauri/src/main.rs": {
+    "size": 101,
+    "sha256": "521134d5632d2ec5bd8b72a98af0893dfe3c6ad004bc7206a744aaa94c8b4a0b"
+  },
+  "src-tauri/tauri.conf.json": {
+    "size": 855,
+    "sha256": "e7e16235243a08f58f97ec8da1a251e9fdbf88ef2605cba8e130ca7169b8393a"
+  },
+  ".github/workflows/build-apps.yml": {
+    "size": 2022,
+    "sha256": "1b8dd6c1db16663339d1217a1c636024e7e83d7da4f0446c1c9a86afec934af7"
+  }
+}

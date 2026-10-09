@@ -1,0 +1,4 @@
+이 폴더의 내용물을 기존 ckdgh546/N3 저장소 루트에 그대로 합치면 됩니다.
+기존 저장소의 assets/ 폴더는 삭제하지 마세요. GitHub Pages가 계속 사용합니다.
+index.html, sw.js, player.html은 이 버전으로 교체합니다.
+Push하면 GitHub Actions가 Windows/Android 앱 빌드를 자동 시작합니다.

@@ -1,0 +1,20 @@
+N3 Loop 8.0 — 가장 간단한 사용 흐름
+
+사용할 때:
+1) Windows 또는 Android N3 Loop 앱 실행
+2) 노래 가사 붙여넣기
+3) [GPT로 바로 해석] 누르기
+4) 처음 딱 한 번만 ChatGPT 로그인/허용
+5) 로그인 직후 같은 요청이 자동으로 이어져 이 화면에 한국어 해석 표시
+6) 다음부터는 [GPT로 바로 해석]만 누르면 끝
+
+없앤 것:
+- API 키 입력 없음
+- BAT 실행 없음
+- Node 서버 실행 없음
+- ChatGPT 창으로 가사 복사/붙여넣기 없음
+- 번역 결과를 다시 복사해오는 과정 없음
+
+빌드 파일 만들기:
+이 프로젝트 전체를 GitHub 저장소 루트에 넣고 Push하면 GitHub Actions의
+"Build N3 Loop Apps"가 Windows 설치파일과 Android APK를 자동 빌드합니다.

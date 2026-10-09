@@ -1,0 +1,30 @@
+[package]
+name = "n3-loop"
+version = "8.0.0"
+description = "N3 Loop - JLPT N3 study app with ChatGPT plan lyric translation"
+authors = ["N3 Loop"]
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+name = "n3_loop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.1", features = [] }
+tauri-plugin-opener = "2.7.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["net", "io-util", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+rand = "0.8"
+sha2 = "0.10"
+base64 = "0.22"
+jsonwebtoken = { version = "11.1", default-features = false, features = ["rust_crypto"] }
+futures-util = "0.3"
+chrono = { version = "0.4", features = ["serde", "clock"] }

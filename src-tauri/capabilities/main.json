@@ -1,0 +1,14 @@
+{
+  "identifier": "main-capability",
+  "description": "N3 Loop local UI permissions",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "app:allow-chatgpt-status",
+    "app:allow-chatgpt-sign-in",
+    "app:allow-chatgpt-translate",
+    "app:allow-chatgpt-sign-out"
+  ]
+}

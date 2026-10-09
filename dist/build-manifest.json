@@ -1,0 +1,433 @@
+{
+  "version": "7.3-simple-chatgpt",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "size": 52
+    },
+    {
+      "path": ".nojekyll",
+      "size": 0
+    },
+    {
+      "path": "README.md",
+      "size": 1421
+    },
+    {
+      "path": "UPDATE_7_3.md",
+      "size": 483
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-001.webp",
+      "size": 155656
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-002.webp",
+      "size": 105786
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-003.webp",
+      "size": 147288
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-004.webp",
+      "size": 164758
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-005.webp",
+      "size": 99794
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-006.webp",
+      "size": 52032
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-007.webp",
+      "size": 67874
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-008.webp",
+      "size": 185734
+    },
+    {
+      "path": "assets/exams/2012/N3G/page-009.webp",
+      "size": 57364
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-001.webp",
+      "size": 112862
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-002.webp",
+      "size": 107758
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-003.webp",
+      "size": 47804
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-004.webp",
+      "size": 68880
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-005.webp",
+      "size": 45300
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-006.webp",
+      "size": 50152
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-007.webp",
+      "size": 73544
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-008.webp",
+      "size": 53822
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-009.webp",
+      "size": 54790
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-010.webp",
+      "size": 62922
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-011.webp",
+      "size": 62036
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-012.webp",
+      "size": 114412
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-013.webp",
+      "size": 168580
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-014.webp",
+      "size": 126746
+    },
+    {
+      "path": "assets/exams/2012/N3L/page-015.webp",
+      "size": 45034
+    },
+    {
+      "path": "assets/exams/2012/N3Q1.mp3",
+      "size": 3104050
+    },
+    {
+      "path": "assets/exams/2012/N3Q2.mp3",
+      "size": 3733068
+    },
+    {
+      "path": "assets/exams/2012/N3Q3.mp3",
+      "size": 1973076
+    },
+    {
+      "path": "assets/exams/2012/N3Q4.mp3",
+      "size": 1073086
+    },
+    {
+      "path": "assets/exams/2012/N3Q5.mp3",
+      "size": 1569634
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-001.webp",
+      "size": 139230
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-002.webp",
+      "size": 125404
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-003.webp",
+      "size": 114986
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-004.webp",
+      "size": 116764
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-005.webp",
+      "size": 200036
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-006.webp",
+      "size": 64576
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-007.webp",
+      "size": 224154
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-008.webp",
+      "size": 64842
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-009.webp",
+      "size": 244546
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-010.webp",
+      "size": 117820
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-011.webp",
+      "size": 90336
+    },
+    {
+      "path": "assets/exams/2012/N3R/page-012.webp",
+      "size": 178348
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-001.webp",
+      "size": 131738
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-002.webp",
+      "size": 105242
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-003.webp",
+      "size": 103928
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-004.webp",
+      "size": 84850
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-005.webp",
+      "size": 130114
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-006.webp",
+      "size": 88400
+    },
+    {
+      "path": "assets/exams/2012/N3V/page-007.webp",
+      "size": 166498
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-001.webp",
+      "size": 159058
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-002.webp",
+      "size": 124250
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-003.webp",
+      "size": 168266
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-004.webp",
+      "size": 139446
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-005.webp",
+      "size": 49654
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-006.webp",
+      "size": 110288
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-007.webp",
+      "size": 54594
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-008.webp",
+      "size": 183606
+    },
+    {
+      "path": "assets/exams/2018/N3G/page-009.webp",
+      "size": 53054
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-001.webp",
+      "size": 120672
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-002.webp",
+      "size": 124250
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-003.webp",
+      "size": 46398
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-004.webp",
+      "size": 96102
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-005.webp",
+      "size": 38548
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-006.webp",
+      "size": 46496
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-007.webp",
+      "size": 26404
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-008.webp",
+      "size": 70962
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-009.webp",
+      "size": 56524
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-010.webp",
+      "size": 58662
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-011.webp",
+      "size": 60032
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-012.webp",
+      "size": 59542
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-013.webp",
+      "size": 112804
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-014.webp",
+      "size": 144560
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-015.webp",
+      "size": 153736
+    },
+    {
+      "path": "assets/exams/2018/N3L/page-016.webp",
+      "size": 42036
+    },
+    {
+      "path": "assets/exams/2018/N3Q1.mp3",
+      "size": 10732040
+    },
+    {
+      "path": "assets/exams/2018/N3Q2.mp3",
+      "size": 13389164
+    },
+    {
+      "path": "assets/exams/2018/N3Q3.mp3",
+      "size": 7289705
+    },
+    {
+      "path": "assets/exams/2018/N3Q4.mp3",
+      "size": 3804002
+    },
+    {
+      "path": "assets/exams/2018/N3Q5.mp3",
+      "size": 6428183
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-001.webp",
+      "size": 149788
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-002.webp",
+      "size": 129632
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-003.webp",
+      "size": 156164
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-004.webp",
+      "size": 136786
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-005.webp",
+      "size": 232632
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-006.webp",
+      "size": 64346
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-007.webp",
+      "size": 258914
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-008.webp",
+      "size": 87774
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-009.webp",
+      "size": 271326
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-010.webp",
+      "size": 162380
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-011.webp",
+      "size": 106282
+    },
+    {
+      "path": "assets/exams/2018/N3R/page-012.webp",
+      "size": 206400
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-001.webp",
+      "size": 137188
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-002.webp",
+      "size": 124250
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-003.webp",
+      "size": 99862
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-004.webp",
+      "size": 78400
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-005.webp",
+      "size": 179764
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-006.webp",
+      "size": 93994
+    },
+    {
+      "path": "assets/exams/2018/N3V/page-007.webp",
+      "size": 220948
+    },
+    {
+      "path": "assets/icons/icon-192.png",
+      "size": 2454
+    },
+    {
+      "path": "assets/icons/icon-512.png",
+      "size": 6958
+    },
+    {
+      "path": "build-manifest.json",
+      "size": 9023
+    },
+    {
+      "path": "index.html",
+      "size": 4386816
+    },
+    {
+      "path": "manifest.webmanifest",
+      "size": 571
+    },
+    {
+      "path": "sw.js",
+      "size": 1233
+    }
+  ]
+}
