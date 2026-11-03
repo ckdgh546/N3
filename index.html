@@ -339,6 +339,10 @@ body.dark .pp-btn.primary{color:#12151B}
 .pp-card-sub p{font-size:13px;line-height:1.8;word-break:keep-all}.pp-card-sub .jp{font-family:var(--serif);color:var(--muted)}
 .pp-card-note{font-size:12px;color:var(--muted);line-height:1.75;margin-top:10px;text-align:left;word-break:keep-all}
 @media(max-width:380px){.pp-card-word{font-size:38px}.pp-card-gram{font-size:26px}}
+
+.pp-card-ex.is-ruby{line-height:2.4}
+.pp-card-ex ruby rt{font-family:'IBM Plex Sans KR','Noto Sans JP',sans-serif;font-size:.52em;color:var(--indigo);font-weight:500;letter-spacing:0}
+.pp-card-ex-read{font-size:13px;color:var(--muted);text-align:center;font-family:var(--serif)}
 </style></head>
 <body><div id="app"></div><noscript style="display:block;padding:30px">이 학습 앱은 JavaScript가 필요합니다. 파일 미리보기가 아닌 웹 브라우저로 열어 주세요.</noscript><div id="toast" class="toast" role="status" hidden></div><div id="announcer" class="sr-only" role="status" aria-live="polite"></div><input class="hidden-file" id="backup-input" type="file" accept=".json,application/json"><dialog id="confirm-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-message"><h2 id="dialog-title"></h2><p id="dialog-message"></p><div class="dialog-actions"><button id="dialog-cancel">취소</button><button class="confirm" id="dialog-confirm">확인</button></div></dialog><script>window.N3_PWA=true;</script><script>/* N3 Loop — flashcard engine with level-preserving shuffled study queues. No network or dependencies. */
 (function(root){
@@ -2114,6 +2118,23 @@ function memMark(known){
  for(const d of Object.keys(s.mlog))if(d<addDays(today,-70))delete s.mlog[d];
  x.i++;x.open=false;save();render(true);
 }
+const toH=t=>t.replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+const KJ=/[\u3400-\u9fff\uf900-\ufaff々〆ヶ]/;
+function rubyHTML(text,reading){
+ const plain=esc(text);if(!text||!reading)return plain;
+ const parts=text.match(/[\u3400-\u9fff\uf900-\ufaff々〆ヶ]+|[^\u3400-\u9fff\uf900-\ufaff々〆ヶ]+/g)||[];
+ if(!parts.some(p=>KJ.test(p)))return plain;
+ const re=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ let pat='^';for(const p of parts)pat+=KJ.test(p)?'([\\u3041-\\u3096ー]+?)':re(toH(p));pat+='$';
+ let m;try{m=new RegExp(pat).exec(toH(reading));}catch(_){m=null;}
+ if(!m)return null;
+ let k=1;return parts.map(p=>KJ.test(p)?'<ruby>'+esc(p)+'<rt>'+esc(m[k++])+'</rt></ruby>':esc(p)).join('');
+}
+function exampleHTML(text,reading,open){
+ if(!open)return '<p class="pp-card-ex jp" lang="ja">'+esc(text)+'</p>';
+ const rb=rubyHTML(text,reading);
+ return '<p class="pp-card-ex jp is-ruby" lang="ja">'+(rb===null?esc(text):rb)+'</p>'+(rb===null&&reading?'<p class="pp-card-ex-read jp" lang="ja">'+esc(reading)+'</p>':'');
+}
 function memCardView(){
  const s=memState(),x=s.cs;
  if(x.i>=x.q.length){const t=x.t,today=memToday(t);return '<main class="pp-shell pp-study"><header class="pp-bar"><button class="pp-icon" data-dr="mem-close" aria-label="닫기">‹</button><div class="pp-bar-mid"><strong>'+MEM[t].ko+' 외우기</strong></div></header><section class="pp-score"><p class="pp-score-label">오늘 '+MEM[t].ko+' 카드</p><p class="pp-score-big">'+x.done+'<small>장</small></p><p class="pp-small">모른다고 한 카드는 내일 다시 나와요. 아는 카드는 3일, 7일, 14일 간격으로 돌아옵니다. 전체 '+MEM[t].list.length+'개 중 '+Object.keys(s.mem[t]).filter(i=>MEM[t].list.includes(Number(i))).length+'개를 한 번 이상 봤어요.</p></section><div class="pp-actions"><button class="pp-btn primary" data-dr="mem-close">'+(x.back==='sprint'?'오늘 화면으로':'돌아가기')+'</button></div></main>';}
@@ -2121,15 +2142,15 @@ function memCardView(){
  let front,backHTML;
  if(t==='v'){
   const ex=root.N3_EXAMPLES?.vocabulary?.[c.word];
-  front='<p class="pp-card-word jp" lang="ja">'+esc(c.word)+'</p>'+(ex?'<p class="pp-card-ex jp" lang="ja">'+esc(ex.text)+'</p>':'');
-  backHTML='<p class="pp-card-read jp" lang="ja">'+esc(c.reading)+'</p><p class="pp-card-mean">'+esc(c.meaning)+'</p>'+(ex?'<div class="pp-card-sub"><p class="jp" lang="ja">'+esc(ex.reading)+'</p><p>'+esc(ex.translation)+'</p></div>':'');
+  front='<p class="pp-card-word jp" lang="ja">'+esc(c.word)+'</p>'+(ex?exampleHTML(ex.text,ex.reading,x.open):'');
+  backHTML='<p class="pp-card-read jp" lang="ja">'+esc(c.reading)+'</p><p class="pp-card-mean">'+esc(c.meaning)+'</p>'+(ex?'<div class="pp-card-sub"><p>'+esc(ex.translation)+'</p></div>':'');
  }else{
-  front='<p class="pp-card-word pp-card-gram jp" lang="ja">'+esc(c.word)+'</p>'+(c.example?'<p class="pp-card-ex jp" lang="ja">'+esc(c.example)+'</p>':'');
-  backHTML='<p class="pp-card-mean">'+esc(c.meaning)+'</p>'+(c.connection?'<p class="pp-card-conn"><b>접속</b> '+esc(c.connection)+'</p>':'')+(c.example?'<div class="pp-card-sub"><p class="jp" lang="ja">'+esc(c.reading||'')+'</p><p>'+esc(c.translation||'')+'</p></div>':'')+(c.note?'<p class="pp-card-note">'+esc(c.note)+'</p>':'');
+  front='<p class="pp-card-word pp-card-gram jp" lang="ja">'+esc(c.word)+'</p>'+(c.example?exampleHTML(c.example,c.reading,x.open):'');
+  backHTML='<p class="pp-card-mean">'+esc(c.meaning)+'</p>'+(c.connection?'<p class="pp-card-conn"><b>접속</b> '+esc(c.connection)+'</p>':'')+(c.example?'<div class="pp-card-sub"><p>'+esc(c.translation||'')+'</p></div>':'')+(c.note?'<p class="pp-card-note">'+esc(c.note)+'</p>':'');
  }
  return '<main class="pp-shell pp-study"><header class="pp-bar"><button class="pp-icon" data-dr="mem-close" aria-label="그만하기">‹</button><div class="pp-bar-mid"><strong>'+MEM[t].ko+' 외우기</strong><span><b>'+(x.i+1)+'</b> / '+n+'</span></div><span class="pp-clock">'+tag+'</span><div class="pp-track"><i style="width:'+Math.round(x.i/n*100)+'%"></i></div></header>'+
  '<article class="pp-sheet pp-card">'+front+(x.open?'<div class="pp-card-back">'+backHTML+'</div>':'')+'</article>'+
- (x.open?'<div class="pp-actions two"><button class="pp-btn" data-dr="mem-no">몰랐어요</button><button class="pp-btn primary" data-dr="mem-yes">알았어요</button></div><p class="pp-hint">키보드 1 알았어요, 2 몰랐어요</p>':'<div class="pp-actions"><button class="pp-btn primary" data-dr="mem-open">'+(t==='v'?'읽기와 뜻 보기':'뜻과 접속 보기')+'</button></div><p class="pp-hint">먼저 머릿속으로 '+(t==='v'?'읽기와 뜻':'뜻')+'을 떠올린 뒤 눌러 보세요. 스페이스 키로도 열려요.</p>')+'</main>';
+ (x.open?'<div class="pp-actions two"><button class="pp-btn" data-dr="mem-no">몰랐어요</button><button class="pp-btn primary" data-dr="mem-yes">알았어요</button></div><p class="pp-hint">키보드 1 알았어요, 2 몰랐어요</p>':'<div class="pp-actions"><button class="pp-btn primary" data-dr="mem-open">'+(t==='v'?'읽기와 뜻 보기':'뜻과 접속 보기')+'</button></div><p class="pp-hint">먼저 머릿속으로 '+(t==='v'?'읽기와 뜻':'뜻')+'을 떠올린 뒤 눌러 보세요. 열면 예문에 후리가나가 붙어요.</p>')+'</main>';
 }
 
 /* ---------- plan ---------- */
