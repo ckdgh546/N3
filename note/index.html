@@ -52,7 +52,9 @@ button:active{opacity:.55}
 .nb b{font-weight:700;font-size:15px;overflow-wrap:anywhere;display:block}
 .nb small{color:var(--sub);font-size:12.5px;display:block}
 .nbmore{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#191f28;font-weight:800;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.empty{color:var(--sub);padding:40px 0;text-align:center}
+.empty{grid-column:1/-1;color:var(--sub);padding:40px 0;text-align:center}
+.inst{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.6}
+.insttxt{flex:1;min-width:0}
 .warn{background:var(--card);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--sub);margin-bottom:14px}
 /* 버튼 */
 .btn{appearance:none;border:0;background:var(--fill);border-radius:12px;padding:10px 16px;font-weight:700;font-size:15px;cursor:pointer;min-height:46px;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;flex:none}
@@ -156,7 +158,7 @@ body.t-text .tx:focus{box-shadow:0 0 0 2px #2f6fed}
 
 <div class="screen" id="lib">
   <div class="libhead"><h1>내 노트</h1><div class="libbtns"><button type="button" class="btn" data-act="sync-sheet" id="syncbtn" hidden>기기 연동</button><button type="button" class="btn" data-act="lib-retry">새로 고침</button><button type="button" class="btn pri" data-act="nb-new">새 노트</button></div></div>
-  <div class="libbody"><div class="warn" id="libwarn" hidden></div><div id="grid" class="grid"><div class="empty">노트를 불러오는 중이에요</div></div></div>
+  <div class="libbody"><div class="inst" id="inst" hidden><div class="insttxt" id="insttxt"></div><button type="button" class="btn pri" data-act="install" id="instbtn" hidden>앱 설치</button></div><div class="warn" id="libwarn" hidden></div><div id="grid" class="grid"><div class="empty">노트를 불러오는 중이에요</div></div></div>
 </div>
 
 <div class="screen" id="ed" hidden>
@@ -1253,12 +1255,30 @@ function onVisible(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Sync.on)Sync.cycle(true);});
 window.addEventListener('online',()=>{if(Sync.on)Sync.cycle();});
 
+/* ───────── 앱으로 설치 ───────── */
+let INSTALL=null;
+const isApp=()=>{try{return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches;}catch(e){return false;}};
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+const needInstall=()=>!FRAMED&&Store.mode==='local'&&!isApp();
+function renderInstall(){
+  const box=$('#inst');if(!box)return;
+  if(!needInstall()){box.hidden=true;return;}
+  const t=$('#insttxt'),b=$('#instbtn');box.hidden=false;b.hidden=!INSTALL;
+  if(INSTALL)t.innerHTML='<b>이 기기에 앱으로 설치해 쓰세요.</b><br>설치하면 앱 목록에 "필기 노트"가 생기고, 브라우저 없이 바로 열려요.';
+  else if(isIOS())t.innerHTML='<b>아이패드에 앱으로 설치해 쓰세요.</b><br>공유 버튼(네모에서 화살표가 위로 나가는 모양)을 누르고 <b>홈 화면에 추가</b>를 누르면 돼요. 그다음부터는 홈 화면의 "필기 노트"로 열어요. 여기 사파리에서 쓴 노트는 설치한 앱으로 넘어가지 않아요.';
+  else t.innerHTML='<b>앱으로 설치해 쓰세요.</b><br>브라우저 메뉴에서 <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 누르면 돼요.';
+}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL=e;renderInstall();});
+window.addEventListener('appinstalled',()=>{INSTALL=null;const b=$('#inst');if(b)b.hidden=true;toast('설치했어요. 이제 앱 목록의 "필기 노트"로 열어요');});
+function doInstall(){if(!INSTALL)return;const p=INSTALL;try{p.prompt();Promise.resolve(p.userChoice).then(()=>{INSTALL=null;renderInstall();}).catch(()=>{});}catch(e){INSTALL=null;renderInstall();}}
+
 /* ───────── 노트 목록 ───────── */
 async function renderLib(){
+  renderInstall();
   const grid=$('#grid');let list=[];
   try{list=await within(Store.list('nb'),12000);}catch(e){grid.innerHTML='<div class="empty">노트를 불러오지 못했어요. 연결을 확인해 주세요<div class="btns" style="justify-content:center"><button type="button" class="btn" data-act="lib-retry">다시 불러오기</button></div></div>';return;}
   list.sort((a,b)=>(b.data.updated||0)-(a.data.updated||0));
-  const w=$('#libwarn');w.hidden=Store.mode==='cloud'||Sync.on;
+  const w=$('#libwarn');w.hidden=Store.mode==='cloud'||Sync.on||(needInstall()&&isIOS());
   if(Store.mode==='local')w.textContent=FRAMED?'노트가 이 기기 브라우저에만 저장돼요. 중요한 노트는 PDF로 내보내 두세요.':'지금은 노트가 이 기기에만 저장돼요. 위의 "기기 연동"을 켜면 다른 기기에서도 같은 노트가 보여요.';
   if(Store.mode==='memory')w.textContent='지금은 저장이 안 되는 상태예요. 창을 닫으면 사라져요.';
   if(!list.length){grid.innerHTML='<div class="empty">아직 노트가 없어요. 오른쪽 위 "새 노트"로 시작해 보세요</div>';return;}
@@ -1343,6 +1363,7 @@ document.addEventListener('click',async e=>{
     case 'nb-create':createNb();break;
     case 'nb-open':openNb(id);break;
     case 'sync-sheet':syncSheet();break;
+    case 'install':doInstall();break;
     case 'sync-connect':syncConnect();break;
     case 'sync-now':Sync.cycle().then(()=>{if(!$('#sheet').hidden&&$('#sync-now'))syncSheet();renderLib();});break;
     case 'sync-off':Sync.stop();closeSheet();toast('이 기기의 연동을 끊었어요');renderLib();break;
@@ -1421,7 +1442,7 @@ async function init(){
     window.claude.use('downloads').then(d=>{DL=d||null;}).catch(()=>{});
   }
   if(Store.mode==='local'&&!FRAMED){ /* 따로 설치해 쓰는 화면: 기기 연동, 오프라인에서도 열리게 */
-    $('#syncbtn').hidden=false;if(Sync.load())Sync.begin(false);
+    $('#syncbtn').hidden=isIOS()&&!isApp();if(Sync.load())Sync.begin(false);
     if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]'))navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
   renderLib();
