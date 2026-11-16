@@ -981,7 +981,9 @@ async function exportJpg(){closeSheet();const pid=currentPid(),n=NB.pages.indexO
 let io=null,settleT=0,navUntil=0;   /* navUntil: 단추로 넘기는 움직임이 끝날 때까지는 '지금 쪽'을 다시 재지 않는다 */
 function setPw(){const base=Math.max(280,Math.min(sc.clientWidth-32,920));document.documentElement.style.setProperty('--pw',Math.round(base*S.zoom)+'px');}
 const currentPid=()=>NB.pages[clamp(curIdx,0,NB.pages.length-1)];
-function goPage(i,smooth){const to=clamp(i,0,NB.pages.length-1);if(to!==curIdx)closeEd();curIdx=to;const left=curIdx*sc.clientWidth;if(smooth&&sc.scrollTo){navUntil=performance.now()+800;sc.scrollTo({left,behavior:'smooth'});}else sc.scrollLeft=left;showPageNo();}
+function goPage(i,smooth){const to=clamp(i,0,NB.pages.length-1);if(to!==curIdx)closeEd();curIdx=to;const left=curIdx*sc.clientWidth;if(smooth&&sc.scrollTo){navUntil=performance.now()+800;sc.scrollTo({left,behavior:'smooth'});}else sc.scrollLeft=left;showPageNo();ensureNear();}
+/* 지금 쪽과 양옆 쪽은 화면 감지(IntersectionObserver)를 기다리지 않고 바로 불러와 그린다 */
+function ensureNear(){if(!NB)return;for(const i of [curIdx,curIdx-1,curIdx+1]){const pid=NB.pages[i],P=pid&&PG[pid];if(!P||!P.el)continue;P.visible=true;if(!P.loaded)loadPage(pid);else if(!$('.ink',P.el).width)renderPage(pid);}}
 function numberPages(){NB.pages.forEach((pid,i)=>{const P=PG[pid];if(P&&P.el)$('.pno',P.el).textContent=(i+1)+' / '+NB.pages.length;});showPageNo();}
 const blankPage=()=>({strokes:[],texts:[],objs:[],kn:0,loaded:false});
 function slideFor(pid){
@@ -1009,7 +1011,7 @@ function onScroll(){
 function settle(){
   if(!NB||PINCH||DRAW)return;if(performance.now()<navUntil){clearTimeout(settleT);settleT=setTimeout(settle,200);return;}
   const w=sc.clientWidth;if(!w)return;const i=clamp(Math.round(sc.scrollLeft/w),0,NB.pages.length-1);
-  if(i!==curIdx){closeEd();curIdx=i;showPageNo();if(SEL&&SEL.pid!==currentPid()){SEL=null;drawSel();}}
+  if(i!==curIdx){closeEd();curIdx=i;showPageNo();ensureNear();if(SEL&&SEL.pid!==currentPid()){SEL=null;drawSel();}}
 }
 function addPage(quiet){
   const pid=uid();NB.pages.push(pid);PG[pid]=blankPage();PG[pid].loaded=true;
