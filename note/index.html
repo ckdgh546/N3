@@ -1100,61 +1100,80 @@ async function backToLib(){
 }
 
 /* ───────── 기기 연동(따로 설치해 쓰는 앱) ─────────
-   노트는 먼저 이 기기에 저장하고, 내 GitHub 비공개 저장소(data/…json)와 뒤에서 맞춘다.
-   올리기: 바뀐 문서만 하나씩. 받기: 저장소의 파일 목록을 한 번에 받아 달라진 것만 내려받는다. 같은 문서를 양쪽에서 고쳤으면 나중에 올린 쪽이 남는다. */
-const GH='https://api.github.com';
-const b64enc=str=>{const u=new TextEncoder().encode(str);let o='';for(let i=0;i<u.length;i+=0x8000)o+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(o);};
-const b64dec=b=>{const t=atob(String(b).replace(/\s/g,'')),u=new Uint8Array(t.length);for(let i=0;i<t.length;i++)u[i]=t.charCodeAt(i);return new TextDecoder().decode(u);};
-const Sync={on:false,cfg:null,shas:{},pending:{},head:'',busy:false,again:false,timer:0,poll:0,mt:0,last:0,err:'',note:'',
-  load(){try{this.cfg=JSON.parse(localStorage.getItem('note-gh')||'null');}catch(e){this.cfg=null;}return this.cfg&&this.cfg.token&&this.cfg.repo?this.cfg:null;},
+   노트는 먼저 이 기기에 저장하고, 내 계정(이메일 로그인)의 보관함과 뒤에서 맞춘다.
+   올리기: 바뀐 문서만. 받기: 마지막으로 받은 뒤에 바뀐 문서만. 같은 문서를 두 기기에서 고쳤으면 획·글·사진을 합친다. */
+const FB={apiKey:'AIzaSyBc5V8ZfTA-bCky1q35BU-X_AfgmhL_Iog',projectId:'my-note-sync-c9280'};
+const FB_ON=()=>!!(FB.apiKey&&FB.projectId);
+const FS='https://firestore.googleapis.com/v1/';
+const fsRoot=()=>'projects/'+FB.projectId+'/databases/(default)/documents';
+const docId=p=>p.replace(/\//g,'~');
+const Sync={on:false,cfg:null,shas:{},pending:{},cursor:'',busy:false,again:false,timer:0,poll:0,mt:0,last:0,err:'',note:'',
+  load(){try{this.cfg=JSON.parse(localStorage.getItem('note-fb')||'null');}catch(e){this.cfg=null;}return FB_ON()&&this.cfg&&this.cfg.refresh&&this.cfg.uid?this.cfg:null;},
+  keep(){try{localStorage.setItem('note-fb',JSON.stringify(this.cfg));}catch(e){}},
   label(){return this.err?'연동 안 됨':(this.busy||Object.keys(this.pending).length?'연동 중…':'연동됨');},
   status(note){this.note=note||'';const b=$('#syncbtn');if(b)b.textContent=this.on?this.label():'기기 연동';setStat();const n=$('#sync-now');if(n)n.textContent=this.busy?(this.note||'맞추는 중…'):'지금 맞추기';},
-  async api(method,url,body){
-    const r=await fetch(GH+url,{method,headers:{'Authorization':'Bearer '+this.cfg.token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  async token(){
+    const c=this.cfg;if(c.id&&c.exp>Date.now()+60000)return c.id;
+    const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+FB.apiKey,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(c.refresh),cache:'no-store'});
     let j=null;try{j=await r.json();}catch(e){}
-    if(!r.ok){const er=new Error((j&&j.message)||('HTTP '+r.status));er.status=r.status;throw er;}
+    if(!r.ok){const er=new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));er.status=r.status;er.auth=r.status===400||r.status===401||r.status===403;throw er;}
+    c.id=j.id_token;c.refresh=j.refresh_token||c.refresh;c.exp=Date.now()+(+j.expires_in||3600)*1000;this.keep();return c.id;},
+  async api(method,path,body){
+    const r=await fetch(FS+path,{method,headers:{'Authorization':'Bearer '+(await this.token()),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+    let j=null;try{j=await r.json();}catch(e){}
+    if(!r.ok){const e0=Array.isArray(j)?j[0]:j,er=new Error((e0&&e0.error&&e0.error.message)||('HTTP '+r.status));er.status=r.status;er.code=e0&&e0.error&&e0.error.status;throw er;}
     return j;},
-  saveMeta(){clearTimeout(this.mt);this.mt=setTimeout(()=>{Store.metaSet('shas',this.shas).catch(()=>{});Store.metaSet('pending',this.pending).catch(()=>{});},300);},
+  docName(p){return fsRoot()+'/users/'+this.cfg.uid+'/docs/'+docId(p);},
+  saveMeta(){clearTimeout(this.mt);this.mt=setTimeout(()=>{Store.metaSet('shas',this.shas).catch(()=>{});Store.metaSet('pending',this.pending).catch(()=>{});Store.metaSet('cursor',this.cursor).catch(()=>{});},300);},
   mark(path){
     if(!this.on||path.indexOf('rev/')===0)return;
-    this.pending[path]=(this.pending[path]||0)+1;this.saveMeta();clearTimeout(this.timer);this.timer=setTimeout(()=>this.cycle(),2500);this.status();},
+    this.pending[path]=(this.pending[path]||0)+1;this.saveMeta();clearTimeout(this.timer);this.timer=setTimeout(()=>this.cycle(),2000);this.status();},
   async begin(first){
     if(Store.mode!=='local'||!this.load())return;
-    this.on=true;this.err='';this.shas=(await Store.meta('shas'))||{};this.pending=(await Store.meta('pending'))||{};this.status();
-    clearInterval(this.poll);this.poll=setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)this.cycle(true);},20000);
+    this.on=true;this.err='';this.shas=(await Store.meta('shas'))||{};this.pending=(await Store.meta('pending'))||{};this.cursor=(await Store.meta('cursor'))||'';this.status();
+    if(!this.vis){this.vis=1;document.addEventListener('visibilitychange',()=>{if(!document.hidden&&this.on)this.cycle(true);});}
+    clearInterval(this.poll);this.poll=setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)this.cycle(true);},15000);
     await this.cycle(false,first);},
-  stop(){this.on=false;clearInterval(this.poll);clearTimeout(this.timer);this.shas={};this.pending={};this.head='';this.err='';
-    try{localStorage.removeItem('note-gh');}catch(e){}Store.metaSet('shas',{}).catch(()=>{});Store.metaSet('pending',{}).catch(()=>{});this.cfg=null;this.status();},
-  /* light: 저장소가 바뀌었는지만 가볍게 보고, 바뀌었을 때만 받는다 */
+  stop(){this.on=false;clearInterval(this.poll);clearTimeout(this.timer);this.shas={};this.pending={};this.cursor='';this.err='';
+    try{localStorage.removeItem('note-fb');}catch(e){}Store.metaSet('shas',{}).catch(()=>{});Store.metaSet('pending',{}).catch(()=>{});Store.metaSet('cursor','').catch(()=>{});this.cfg=null;this.status();},
   async cycle(light,first){
     if(!this.on)return;if(this.busy){this.again=true;return;}
     this.busy=true;this.status();
     try{
-      const R='/repos/'+this.cfg.repo,pend=Object.keys(this.pending).length>0;let need=!light||pend||first;
-      const headNow=async()=>{try{const c=await this.api('GET',R+'/commits?per_page=1&sha='+encodeURIComponent(this.cfg.branch));return (c&&c[0]&&c[0].sha)||'';}catch(e){if(e.status===409||e.status===404)return '';throw e;}};
-      if(!need){const h=await headNow();if(h!==this.head)need=true;}
-      if(need){
-        await this.pull();
-        if(first){for(const k of await Store.allKeys())if(!(k in this.shas)&&k.indexOf('rev/')!==0)this.pending[k]=(this.pending[k]||0)+1;}   /* 이 기기에만 있던 노트도 올린다 */
-        await this.push();this.head=await headNow();}
+      await this.pull(first);
+      if(first){for(const k of await Store.allKeys())if(!(k in this.shas)&&k.indexOf('rev/')!==0)this.pending[k]=(this.pending[k]||0)+1;}   /* 이 기기에만 있던 노트도 올린다 */
+      if(Object.keys(this.pending).length)await this.push();
       this.err='';this.last=Date.now();
-    }catch(e){this.err=e&&e.status===401?'토큰이 맞지 않아요. 연동을 끊고 새 토큰으로 다시 연결해 주세요':e&&e.status===404?'보관 저장소를 찾지 못했어요':e&&e.status===403?'GitHub가 잠시 요청을 막았어요. 조금 뒤에 다시 맞춰져요':'인터넷 연결을 확인해 주세요. 노트는 이 기기에 안전하게 저장돼 있어요';}
+    }catch(e){this.err=e&&e.auth?'로그인이 풀렸어요. 연동을 끊고 다시 로그인해 주세요':e&&e.status===403?'보관함에 들어가지 못했어요. 연동을 끊고 다시 로그인해 주세요':e&&e.status===429?'잠시 요청이 많았어요. 조금 뒤에 다시 맞춰져요':'인터넷 연결을 확인해 주세요. 노트는 이 기기에 안전하게 저장돼 있어요';}
     this.busy=false;this.saveMeta();this.status();
     if(this.again){this.again=false;this.cycle();}},
+  /* 마지막으로 받은 때(cursor) 뒤에 바뀐 문서만 받는다. 서버 시각이 기준이라 기기 시계가 달라도 빠지지 않는다 */
   async pull(){
-    const R='/repos/'+this.cfg.repo;let tree=[];
-    try{const t=await this.api('GET',R+'/git/trees/'+encodeURIComponent(this.cfg.branch)+'?recursive=1');tree=(t&&t.tree)||[];}catch(e){if(e.status!==404&&e.status!==409)throw e;}
-    const remote={};for(const n of tree)if(n.type==='blob'&&n.path.indexOf('data/')===0&&/\.json$/.test(n.path))remote[n.path.slice(5,-5)]=n.sha;
-    const changed=[],todo=Object.keys(remote).filter(p=>this.shas[p]!==remote[p]&&!this.pending[p]).sort((a,b)=>(a.indexOf('nb/')===0)-(b.indexOf('nb/')===0));let i=0;
-    for(const p of todo){   /* 쪽·필기 조각을 먼저, 노트 정보는 마지막에(노트가 없는 쪽을 가리키지 않게) */
-      const b=await this.api('GET',R+'/git/blobs/'+remote[p]);await Store.set(p,JSON.parse(b64dec(b.content)),true);this.shas[p]=remote[p];changed.push(p);
+    const since=this.cursor?new Date(Date.parse(this.cursor)-3000).toISOString():'1970-01-01T00:00:00Z';
+    const got=[];let from=since;
+    for(let guard=0;guard<100;guard++){
+      const res=await this.api('POST',fsRoot()+'/users/'+this.cfg.uid+':runQuery',{structuredQuery:{from:[{collectionId:'docs'}],where:{fieldFilter:{field:{fieldPath:'t'},op:'GREATER_THAN',value:{timestampValue:from}}},orderBy:[{field:{fieldPath:'t'},direction:'ASCENDING'}],limit:200}});
+      const docs=(res||[]).filter(x=>x&&x.document).map(x=>x.document);
+      got.push(...docs);
+      if(docs.length<200)break;
+      from=docs[docs.length-1].fields.t.timestampValue;}
+    const changed=[],todo=[];let maxT=this.cursor;
+    for(const d of got){
+      const f=d.fields||{},p=f.p&&f.p.stringValue,t=f.t&&f.t.timestampValue;if(!p)continue;
+      if(t&&(!maxT||Date.parse(t)>Date.parse(maxT)))maxT=t;
+      if(this.shas[p]===d.updateTime)continue;   /* 내가 올린 것 그대로 */
+      todo.push({p,ver:d.updateTime,del:!!(f.d&&f.d.booleanValue),val:f.j&&f.j.stringValue});}
+    todo.sort((a,b)=>(a.p.indexOf('nb/')===0)-(b.p.indexOf('nb/')===0));   /* 쪽·필기 조각을 먼저, 노트 정보는 마지막에 */
+    let i=0;
+    for(const x of todo){
+      if(this.pending[x.p]){   /* 이 기기와 다른 기기가 같은 문서를 둘 다 고쳤다: 합쳐서 올린다 */
+        const loc=await Store.get(x.p);
+        if(loc&&!x.del&&x.val){await Store.set(x.p,this.merge(x.p,loc,JSON.parse(x.val)),true);changed.push(x.p);}
+        this.shas[x.p]=x.ver;continue;}
+      if(x.del){await Store.del(x.p,true);}else{await Store.set(x.p,JSON.parse(x.val),true);}
+      this.shas[x.p]=x.ver;changed.push(x.p);
       if(todo.length>6&&++i%3===0)this.status('받는 중 '+i+'/'+todo.length);}
-    for(const p of Object.keys(this.shas))if(!(p in remote)&&!this.pending[p]){await Store.del(p,true);delete this.shas[p];changed.push(p);}
-    for(const p of Object.keys(this.pending)){
-      if(remote[p]&&remote[p]!==this.shas[p]){   /* 이 기기와 다른 기기가 같은 문서를 둘 다 고쳤다: 한쪽을 버리지 않고 합쳐서 올린다 */
-        const loc=await Store.get(p);
-        if(loc){const b=await this.api('GET',R+'/git/blobs/'+remote[p]),m=this.merge(p,loc,JSON.parse(b64dec(b.content)));await Store.set(p,m,true);changed.push(p);}}
-      if(remote[p])this.shas[p]=remote[p];else delete this.shas[p];}
+    this.cursor=maxT||this.cursor;
     if(changed.length){this.saveMeta();remoteChanged(changed);}},
   /* 양쪽에서 고친 문서 합치기: 획·글·사진·표·쪽은 id로 견주어 양쪽 것을 모두 남긴다(같은 id는 이 기기 것을 쓴다) */
   merge(p,local,remote){
@@ -1163,21 +1182,26 @@ const Sync={on:false,cfg:null,shas:{},pending:{},head:'',busy:false,again:false,
     if(/^pg\/[^/]+$/.test(p))return Object.assign({},local,{texts:uni(local.texts,remote.texts,'id'),objs:uni(local.objs,remote.objs,'id'),kn:Math.max(local.kn||0,remote.kn||0),im:(local.im||remote.im)?1:0});
     if(p.indexOf('nb/')===0){const lp=local.pages||[];return Object.assign({},local,{pages:lp.concat((remote.pages||[]).filter(x=>lp.indexOf(x)<0))});}
     return local;},
+  async write(p,val,ver){
+    const fields={p:{stringValue:p}};
+    if(val==null)fields.d={booleanValue:true};else fields.j={stringValue:JSON.stringify(val)};
+    const w={update:{name:this.docName(p),fields},updateTransforms:[{fieldPath:'t',setToServerValue:'REQUEST_TIME'}]};
+    w.currentDocument=ver?{updateTime:ver}:{exists:false};
+    const r=await this.api('POST',fsRoot()+':commit',{writes:[w]});
+    return r.writeResults[0].updateTime;},
   async push(){
-    const R='/repos/'+this.cfg.repo,B=this.cfg.branch,paths=Object.keys(this.pending).sort((a,b)=>(a.indexOf('nb/')===0)-(b.indexOf('nb/')===0));let i=0;
+    const paths=Object.keys(this.pending).sort((a,b)=>(a.indexOf('nb/')===0)-(b.indexOf('nb/')===0));let i=0;
     for(const p of paths){
-      const mark=this.pending[p],val=await Store.get(p),url=R+'/contents/data/'+p.split('/').map(encodeURIComponent).join('/')+'.json';
-      const put=async sha=>{
-        if(val==null){if(sha)await this.api('DELETE',url,{message:'note: delete '+p,sha,branch:B});delete this.shas[p];return;}
-        const body={message:'note: save '+p,content:b64enc(JSON.stringify(val)),branch:B};if(sha)body.sha=sha;
-        const r=await this.api('PUT',url,body);this.shas[p]=r.content.sha;};
-      try{await put(this.shas[p]);}
+      const mark=this.pending[p];let val=await Store.get(p);
+      if(val==null&&!this.shas[p]){delete this.pending[p];continue;}   /* 올린 적 없는 것을 지움: 할 일 없음 */
+      try{this.shas[p]=await this.write(p,val,this.shas[p]);}
       catch(e){
-        if(e.status===404&&val==null){delete this.shas[p];}
-        else if(e.status===409||e.status===422){   /* 그 사이 저장소 판이 바뀜: 지금 판 번호를 받아 한 번 더 */
-          let sha='';try{const cur=await this.api('GET',url+'?ref='+encodeURIComponent(B));sha=cur.sha;}catch(e2){if(e2.status!==404)throw e2;}
-          await put(sha);}
-        else throw e;}
+        if(!(e.status===400||e.status===404||e.status===409)||(e.code&&!/FAILED_PRECONDITION|NOT_FOUND|ALREADY_EXISTS|ABORTED/.test(e.code)))throw e;
+        /* 그 사이 다른 기기가 같은 문서를 올렸다: 지금 것을 받아 합친 뒤 한 번 더 */
+        let cur=null;try{cur=await this.api('GET',this.docName(p));}catch(e2){if(e2.status!==404)throw e2;}
+        const rf=cur&&cur.fields||{},rv=rf.j&&rf.j.stringValue;
+        if(val!=null&&rv&&!(rf.d&&rf.d.booleanValue)){val=this.merge(p,val,JSON.parse(rv));await Store.set(p,val,true);remoteChanged([p]);}
+        this.shas[p]=await this.write(p,val,cur?cur.updateTime:'');}
       if(this.pending[p]===mark)delete this.pending[p];
       if(paths.length>6&&++i%3===0){this.saveMeta();this.status('올리는 중 '+i+'/'+paths.length);}}
     this.saveMeta();}
@@ -1186,41 +1210,52 @@ const Sync={on:false,cfg:null,shas:{},pending:{},head:'',busy:false,again:false,
 function remoteChanged(paths){
   if(NB){
     const mine=paths.some(p=>p==='nb/'+NBID||NB.pages.some(pid=>p==='pg/'+pid||p.indexOf('pg/'+pid+'/')===0));if(!mine)return;
-    if(busy()){if(!warnedBoth){warnedBoth=true;toast('다른 기기에서도 이 노트를 고치고 있어요. 나중에 저장한 쪽이 남아요');}return;}
+    if(busy()){if(!warnedBoth){warnedBoth=true;toast('다른 기기에서도 이 노트를 고치고 있어요. 저장하면서 합쳐요');}return;}
     reloadNote();
   }else if(!$('#lib').hidden&&$('#sheet').hidden)renderLib();
 }
+const authMsg=m=>/INVALID_EMAIL/.test(m)?'이메일 주소를 다시 봐 주세요.':/WEAK_PASSWORD/.test(m)?'비밀번호는 6글자 이상으로 해 주세요.':/EMAIL_EXISTS|INVALID_PASSWORD|INVALID_LOGIN/.test(m)?'비밀번호가 맞지 않아요. 처음 기기에서 정한 비밀번호를 넣어 주세요.':/TOO_MANY/.test(m)?'시도가 너무 많았어요. 잠시 뒤에 다시 해 주세요.':/USER_DISABLED/.test(m)?'이 계정은 쓸 수 없게 되어 있어요.':'연결하지 못했어요. 인터넷 연결을 확인해 주세요.';
+async function fbAuth(kind,email,password){
+  const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:'+kind+'?key='+FB.apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,returnSecureToken:true}),cache:'no-store'});
+  let j=null;try{j=await r.json();}catch(e){}
+  if(!r.ok){const er=new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));er.status=r.status;throw er;}
+  return j;}
+/* 연결하기: 있는 계정이면 로그인, 처음이면 그 이메일·비밀번호로 계정을 만든다 */
 async function syncConnect(){
-  const inp=$('#gh-token'),token=inp?inp.value.trim():'',btn=$('[data-act=sync-connect]'),msg=$('#sync-msg');if(!token){if(msg)msg.textContent='토큰을 붙여넣어 주세요.';return;}
+  const em=$('#fb-email'),pw=$('#fb-pass'),email=em?em.value.trim():'',password=pw?pw.value:'',btn=$('[data-act=sync-connect]'),msg=$('#sync-msg');
+  const say=t=>{if(msg)msg.textContent=t;else toast(t);};
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){say('이메일 주소를 넣어 주세요.');return;}
+  if(password.length<6){say('비밀번호는 6글자 이상으로 해 주세요.');return;}
   if(btn){btn.disabled=true;btn.textContent='연결하는 중…';}
-  Sync.cfg={token};
+  let fresh=false;
   try{
-    const u=await Sync.api('GET','/user');let info=null;
-    try{info=await Sync.api('GET','/repos/'+u.login+'/note-data');}
-    catch(e){if(e.status!==404)throw e;info=await Sync.api('POST','/user/repos',{name:'note-data',private:true,auto_init:true,description:'내 필기 노트 보관함 (앱이 자동으로 관리해요)'});}
-    if(!info.private){Sync.cfg=null;throw {status:-1};}
-    localStorage.setItem('note-gh',JSON.stringify({token,repo:info.full_name,branch:info.default_branch||'main',login:u.login}));
-    closeSheet();toast('연결했어요. 노트를 맞추는 중이에요');await Sync.begin(true);
-    if(!Sync.err)toast('기기 연동을 켰어요');renderLib();
+    let a;
+    try{a=await fbAuth('signInWithPassword',email,password);}
+    catch(e){
+      if(!/EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS/.test(e.message))throw e;
+      try{a=await fbAuth('signUp',email,password);fresh=true;}
+      catch(e2){throw /EMAIL_EXISTS/.test(e2.message)?new Error('INVALID_PASSWORD'):e2;}}
+    Sync.cfg={uid:a.localId,email:a.email||email,refresh:a.refreshToken,id:a.idToken,exp:Date.now()+(+a.expiresIn||3600)*1000};Sync.keep();
+    closeSheet();toast(fresh?'새 보관함을 만들었어요. 노트를 올리는 중이에요':'로그인했어요. 노트를 맞추는 중이에요');await Sync.begin(true);
+    if(!Sync.err)toast('기기 연동을 켰어요. 다른 기기에서도 같은 이메일로 로그인하세요');renderLib();
   }catch(e){
-    Sync.cfg=Sync.load();
-    const t=e&&e.status===401?'토큰이 맞지 않아요. 복사한 토큰을 그대로 붙여넣었는지 봐 주세요.':e&&e.status===-1?'note-data 저장소가 공개 상태예요. GitHub에서 비공개(Private)로 바꾼 뒤 다시 해 주세요.':e&&(e.status===403||e.status===404||e.status===422)?'보관 저장소를 만들 권한이 없어요. 토큰을 만들 때 "repo"에 체크했는지 봐 주세요.':'연결하지 못했어요. 인터넷 연결을 확인해 주세요.';
-    if($('#sync-msg'))$('#sync-msg').textContent=t;else toast(t);
+    Sync.cfg=Sync.load();say(authMsg(e&&e.message||''));
     const b2=$('[data-act=sync-connect]');if(b2){b2.disabled=false;b2.textContent='연결하기';}
   }
 }
 function syncSheet(){
+  if(!FB_ON()){openSheet('기기 연동','<p class="kv">기기 연동은 준비 중이에요.</p>');return;}
   if(!Sync.on){
-    openSheet('기기 연동','<p class="kv">윈도우·갤럭시·아이패드에 설치한 앱끼리 노트를 맞춰요. 노트는 <b>내 GitHub 계정의 비공개 저장소</b>(note-data)에 보관돼요.</p>'+
-      '<ol class="steps"><li><a href="https://github.com/settings/tokens/new?scopes=repo&description=note-app" target="_blank" rel="noopener">GitHub 토큰 만들기 화면 열기</a></li><li>Expiration을 <b>No expiration</b>으로 바꾸고, 맨 아래 초록색 <b>Generate token</b>을 눌러요.</li><li>나온 토큰(ghp_로 시작)을 복사해 아래에 붙여넣어요. 다른 기기에도 같은 토큰을 넣으면 돼요.</li></ol>'+
-      '<div class="f"><label for="gh-token">GitHub 토큰</label><input id="gh-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ghp_…"></div>'+
+    openSheet('기기 연동','<p class="kv">윈도우·갤럭시·아이패드에 설치한 앱끼리 노트를 자동으로 맞춰요. 기기마다 <b>같은 이메일과 비밀번호</b>로 한 번만 로그인하면 돼요.</p>'+
+      '<div class="f"><label for="fb-email">이메일</label><input id="fb-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="name@example.com"></div>'+
+      '<div class="f"><label for="fb-pass">비밀번호 (6글자 이상)</label><input id="fb-pass" type="password" autocomplete="current-password"></div>'+
       '<div class="btns"><button type="button" class="btn pri grow" data-act="sync-connect">연결하기</button></div><p class="tiny" id="sync-msg" style="color:var(--red)"></p>'+
-      '<p class="tiny">토큰은 이 기기 안에만 저장돼요. 토큰을 아는 사람은 내 GitHub 저장소를 볼 수 있으니 남에게 보여 주지 마세요.</p>');
+      '<p class="tiny">처음 연결하는 기기에서 정한 이메일·비밀번호가 내 보관함 열쇠가 돼요. 다른 기기에서도 똑같이 넣어 주세요.</p>');
     return;}
   const d=Sync.last?new Date(Sync.last):null,n=Object.keys(Sync.pending).length;
-  openSheet('기기 연동','<p class="kv">계정 <b>'+esc(Sync.cfg.login||'')+'</b><br>보관 저장소 <b>'+esc(Sync.cfg.repo)+'</b> (비공개)<br>상태 <b>'+esc(Sync.err||(n?'올릴 것이 '+n+'개 남았어요':'모두 맞춰졌어요'))+'</b>'+(d?'<br>마지막으로 맞춘 때 <b>'+d.getHours()+'시 '+String(d.getMinutes()).padStart(2,'0')+'분</b>':'')+'</p>'+
+  openSheet('기기 연동','<p class="kv">계정 <b>'+esc(Sync.cfg.email||'')+'</b><br>상태 <b>'+esc(Sync.err||(n?'올릴 것이 '+n+'개 남았어요':'모두 맞춰졌어요'))+'</b>'+(d?'<br>마지막으로 맞춘 때 <b>'+d.getHours()+'시 '+String(d.getMinutes()).padStart(2,'0')+'분</b>':'')+'</p>'+
     '<div class="btns"><button type="button" class="btn pri grow" data-act="sync-now" id="sync-now">지금 맞추기</button><button type="button" class="btn danger" data-act="sync-off">이 기기 연동 끊기</button></div>'+
-    '<p class="tiny">다른 기기에서 고친 내용은 20초쯤 안에, 또는 앱을 다시 열 때 들어와요. 연동을 끊어도 이 기기의 노트와 저장소의 노트는 그대로 남아요.</p>');
+    '<p class="tiny">다른 기기에서 고친 내용은 15초쯤 안에, 또는 앱을 다시 열 때 들어와요. 연동을 끊어도 이 기기의 노트와 보관함의 노트는 그대로 남아요.</p>');
 }
 
 /* ───────── 여러 기기에서 같은 노트 쓰기 ─────────
@@ -1262,8 +1297,13 @@ const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(
 const needInstall=()=>!FRAMED&&Store.mode==='local'&&!isApp();
 function renderInstall(){
   const box=$('#inst');if(!box)return;
-  if(!needInstall()){box.hidden=true;return;}
-  const t=$('#insttxt'),b=$('#instbtn');box.hidden=false;b.hidden=!INSTALL;
+  const t=$('#insttxt'),b=$('#instbtn');
+  if(!needInstall()){
+    if(!FRAMED&&Store.mode==='local'&&isApp()&&!Sync.on&&FB_ON()){box.hidden=false;b.hidden=false;b.dataset.act='sync-sheet';b.textContent='연동 켜기';
+      t.innerHTML='<b>다른 기기와 노트를 맞추려면 연동을 켜세요.</b><br>기기마다 같은 이메일·비밀번호로 한 번만 로그인하면, 그다음부터는 자동으로 맞춰져요.';}
+    else box.hidden=true;
+    return;}
+  b.dataset.act='install';b.textContent='앱 설치';box.hidden=false;b.hidden=!INSTALL;
   if(INSTALL)t.innerHTML='<b>이 기기에 앱으로 설치해 쓰세요.</b><br>설치하면 앱 목록에 "필기 노트"가 생기고, 브라우저 없이 바로 열려요.';
   else if(isIOS())t.innerHTML='<b>아이패드에 앱으로 설치해 쓰세요.</b><br>공유 버튼(네모에서 화살표가 위로 나가는 모양)을 누르고 <b>홈 화면에 추가</b>를 누르면 돼요. 그다음부터는 홈 화면의 "필기 노트"로 열어요. 여기 사파리에서 쓴 노트는 설치한 앱으로 넘어가지 않아요.';
   else t.innerHTML='<b>앱으로 설치해 쓰세요.</b><br>브라우저 메뉴에서 <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 누르면 돼요.';
@@ -1278,8 +1318,8 @@ async function renderLib(){
   const grid=$('#grid');let list=[];
   try{list=await within(Store.list('nb'),12000);}catch(e){grid.innerHTML='<div class="empty">노트를 불러오지 못했어요. 연결을 확인해 주세요<div class="btns" style="justify-content:center"><button type="button" class="btn" data-act="lib-retry">다시 불러오기</button></div></div>';return;}
   list.sort((a,b)=>(b.data.updated||0)-(a.data.updated||0));
-  const w=$('#libwarn');w.hidden=Store.mode==='cloud'||Sync.on||(needInstall()&&isIOS());
-  if(Store.mode==='local')w.textContent=FRAMED?'노트가 이 기기 브라우저에만 저장돼요. 중요한 노트는 PDF로 내보내 두세요.':'지금은 노트가 이 기기에만 저장돼요. 위의 "기기 연동"을 켜면 다른 기기에서도 같은 노트가 보여요.';
+  const w=$('#libwarn');w.hidden=Store.mode==='cloud'||Sync.on||(needInstall()&&isIOS())||!$('#inst').hidden;
+  if(Store.mode==='local')w.textContent=FRAMED?'노트가 이 기기 브라우저에만 저장돼요. 중요한 노트는 PDF로 내보내 두세요.':'지금은 노트가 이 기기에만 저장돼요. 앱으로 설치한 뒤 "기기 연동"을 켜면 다른 기기에서도 같은 노트가 보여요.';
   if(Store.mode==='memory')w.textContent='지금은 저장이 안 되는 상태예요. 창을 닫으면 사라져요.';
   if(!list.length){grid.innerHTML='<div class="empty">아직 노트가 없어요. 오른쪽 위 "새 노트"로 시작해 보세요</div>';return;}
   grid.innerHTML=list.map(n=>'<div class="nbwrap"><button type="button" class="nb" data-act="nb-open" data-id="'+esc(n.id)+'"><span class="cover">'+(n.data.thumb?'<img alt="" src="'+esc(n.data.thumb)+'">':'')+'</span><span><b>'+esc(n.data.title)+'</b><small>'+fmtDate(n.data.updated||n.data.created)+' · '+(n.data.pages||[]).length+'쪽</small></span></button>'+
@@ -1442,7 +1482,7 @@ async function init(){
     window.claude.use('downloads').then(d=>{DL=d||null;}).catch(()=>{});
   }
   if(Store.mode==='local'&&!FRAMED){ /* 따로 설치해 쓰는 화면: 기기 연동, 오프라인에서도 열리게 */
-    $('#syncbtn').hidden=isIOS()&&!isApp();if(Sync.load())Sync.begin(false);
+    $('#syncbtn').hidden=!FB_ON()||(isIOS()&&!isApp());if(Sync.load())Sync.begin(false);
     if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]'))navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
   renderLib();
