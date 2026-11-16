@@ -1306,7 +1306,9 @@ function renderInstall(){
   b.dataset.act='install';b.textContent='앱 설치';box.hidden=false;b.hidden=!INSTALL;
   if(INSTALL)t.innerHTML='<b>이 기기에 앱으로 설치해 쓰세요.</b><br>설치하면 앱 목록에 "필기 노트"가 생기고, 브라우저 없이 바로 열려요.';
   else if(isIOS())t.innerHTML='<b>아이패드에 앱으로 설치해 쓰세요.</b><br>공유 버튼(네모에서 화살표가 위로 나가는 모양)을 누르고 <b>홈 화면에 추가</b>를 누르면 돼요. 그다음부터는 홈 화면의 "필기 노트"로 열어요. 여기 사파리에서 쓴 노트는 설치한 앱으로 넘어가지 않아요.';
-  else t.innerHTML='<b>앱으로 설치해 쓰세요.</b><br>브라우저 메뉴에서 <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 누르면 돼요.';
+  else if(/SamsungBrowser/.test(navigator.userAgent))t.innerHTML='<b>갤럭시에 앱으로 설치해 쓰세요.</b><br>화면 맨 아래 오른쪽 <b>⋮</b>(점 세 개) → <b>현재 페이지 추가</b> → <b>홈 화면</b>을 누르면 홈 화면에 "필기 노트"가 생겨요.';
+  else if(/Android/.test(navigator.userAgent))t.innerHTML='<b>앱으로 설치해 쓰세요.</b><br>오른쪽 위 <b>⋮</b>(점 세 개) → <b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누르면 돼요.';
+  else t.innerHTML='<b>앱으로 설치해 쓰세요.</b><br>주소창 오른쪽의 설치 아이콘을 누르거나, 브라우저 메뉴에서 <b>앱 설치</b>를 누르면 돼요.';
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTALL=e;renderInstall();});
 window.addEventListener('appinstalled',()=>{INSTALL=null;const b=$('#inst');if(b)b.hidden=true;toast('설치했어요. 이제 앱 목록의 "필기 노트"로 열어요');});
